@@ -1,0 +1,125 @@
+name: matrix-notify-action
+description: Send notification to a Matrix room
+author: oxGrad <dev@graditya.com>
+branding:
+  icon: message-circle
+  color: green
+
+inputs:
+  homeserver:
+    description: Matrix homeserver URL (e.g. https://matrix.org)
+    required: false
+    default: 'https://matrix.org'
+  token:
+    description: Matrix access token
+    required: true
+  room_id:
+    description: Matrix room ID (e.g. !abc:matrix.org)
+    required: true
+  message:
+    description: Message content
+    required: true
+  format:
+    description: Message format — markdown | plain | html
+    required: false
+    default: markdown
+  msgtype:
+    description: Matrix message type — m.notice | m.text
+    required: false
+    default: m.notice
+  store_path:
+    description: Path to directory for SQLite E2EE crypto store (empty = no E2EE)
+    required: false
+    default: ''
+  gh_token:
+    description: GitHub token for downloading the binary from releases
+    required: false
+    default: ${{ github.token }}
+
+outputs:
+  event_id:
+    description: Matrix event ID of the sent message
+    value: ${{ steps.run.outputs.event_id }}
+  error:
+    description: Error message if the action failed
+    value: ${{ steps.run.outputs.error }}
+
+runs:
+  using: composite
+  steps:
+    - name: Validate HTML message
+      if: inputs.format == 'html'
+      shell: python3 {0}
+      run: |
+        import sys
+        from html.parser import HTMLParser
+        class V(HTMLParser): pass
+        try:
+            V().feed("""${{ inputs.message }}""")
+        except Exception as e:
+            print(f"::error::Invalid HTML in message input: {e}")
+            sys.exit(1)
+
+    - name: Restore E2EE crypto store
+      if: inputs.store_path != ''
+      uses: actions/cache/restore@v4
+      with:
+        path: ${{ inputs.store_path }}
+        key: matrix-notify-store-${{ runner.os }}-${{ github.repository }}-${{ inputs.room_id }}
+
+    - name: Create store directory
+      if: inputs.store_path != ''
+      shell: bash
+      run: mkdir -p "${{ inputs.store_path }}"
+
+    - name: Set action variables
+      shell: bash
+      run: |
+        echo "action_repo=matrix-notify-action" >> $GITHUB_ENV
+        echo "action_org=oxGrad" >> $GITHUB_ENV
+
+    - name: Get action version
+      id: version
+      shell: bash
+      run: |
+        final=$(basename "${{ github.action_path }}")
+        if [ "$final" = "${{ env.action_repo }}" ]; then
+          echo "version=" >> $GITHUB_OUTPUT
+        else
+          echo "version=$final" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Download binary
+      shell: bash
+      run: |
+        gh release download ${{ steps.version.outputs.version }} \
+          --repo ${{ env.action_org }}/${{ env.action_repo }} \
+          --pattern 'linux.tgz'
+        tar -xzf linux.tgz
+      env:
+        GH_TOKEN: ${{ inputs.gh_token }}
+
+    - name: Send Matrix notification
+      id: run
+      shell: bash
+      run: ./matrix-notify-action
+      env:
+        MATRIX_HOMESERVER: ${{ inputs.homeserver }}
+        MATRIX_TOKEN: ${{ inputs.token }}
+        MATRIX_ROOM_ID: ${{ inputs.room_id }}
+        MATRIX_MESSAGE: ${{ inputs.message }}
+        MATRIX_FORMAT: ${{ inputs.format }}
+        MATRIX_MSGTYPE: ${{ inputs.msgtype }}
+        MATRIX_STORE_PATH: ${{ inputs.store_path }}
+
+    - name: Save E2EE crypto store
+      if: always() && inputs.store_path != ''
+      uses: actions/cache/save@v4
+      with:
+        path: ${{ inputs.store_path }}
+        key: matrix-notify-store-${{ runner.os }}-${{ github.repository }}-${{ inputs.room_id }}
+
+    - name: Cleanup
+      if: always()
+      shell: bash
+      run: rm -rf linux.tgz matrix-notify-action
