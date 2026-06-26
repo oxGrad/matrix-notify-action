@@ -3,7 +3,7 @@ name: Release
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
 
 jobs:
   verify-version:
@@ -81,31 +81,3 @@ jobs:
           MAJOR="v$(echo "${{ github.ref_name }}" | cut -d. -f1 | tr -d 'v')"
           git tag -f "${MAJOR}"
           git push origin "${MAJOR}" --force
-
-      - name: Notify Matrix on release
-        if: ${{ env.MATRIX_ACCESS_TOKEN != '' }}
-        uses: ./
-        with:
-          token: ${{ secrets.MATRIX_TOKEN }}
-          room_id: ${{ secrets.MATRIX_ROOM_ID }}
-          message: |
-            **matrix-notify-action** released [${{ github.ref_name }}](${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ github.ref_name }})
-
-  notify-failure:
-    needs: [verify-version, build, release]
-    if: failure()
-    runs-on: ubuntu-latest
-    env:
-      MATRIX_ACCESS_TOKEN: ${{ secrets.MATRIX_TOKEN }}
-    steps:
-      - uses: actions/checkout@v7
-
-      - name: Notify Matrix on failure
-        if: ${{ env.MATRIX_ACCESS_TOKEN != '' }}
-        uses: ./
-        with:
-          token: ${{ secrets.MATRIX_TOKEN }}
-          room_id: ${{ secrets.MATRIX_ALERT_ROOM_ID }}
-          msgtype: m.text
-          message: |
-            **matrix-notify-action** release pipeline failed for ${{ github.ref_name }} — [${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
