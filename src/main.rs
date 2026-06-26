@@ -3,4 +3,23 @@ mod matrix;
 mod output;
 mod render;
 
-fn main() {}
+use config::Config;
+
+#[tokio::main]
+async fn main() {
+    if let Err(e) = run().await {
+        let msg = e.to_string();
+        eprintln!("Error: {}", msg);
+        let _ = output::write_error(&msg);
+        std::process::exit(1);
+    }
+}
+
+async fn run() -> anyhow::Result<()> {
+    let config = Config::from_env()?;
+    let rendered = render::render(&config.message, &config.format);
+    let client = matrix::build_client(&config).await?;
+    let event_id = matrix::send_message(&client, &config, &rendered).await?;
+    output::write_event_id(&event_id)?;
+    Ok(())
+}
