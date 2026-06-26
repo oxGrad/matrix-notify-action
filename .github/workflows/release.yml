@@ -76,6 +76,12 @@ jobs:
         with:
           files: artifacts/linux.tgz
 
+      - name: Update floating major tag
+        run: |
+          MAJOR="v$(echo "${{ github.ref_name }}" | cut -d. -f1 | tr -d 'v')"
+          git tag -f "${MAJOR}"
+          git push origin "${MAJOR}" --force
+
       - name: Notify Matrix on release
         if: ${{ env.MATRIX_ACCESS_TOKEN != '' }}
         uses: ./
