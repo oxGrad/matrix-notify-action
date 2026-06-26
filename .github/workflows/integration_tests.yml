@@ -1,0 +1,45 @@
+name: Test consuming this action
+
+on:
+  release:
+    types: [released]
+  workflow_run:
+    workflows: ["Release"]
+    types: [completed]
+
+jobs:
+  test_success:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - id: notify
+        uses: ./
+        with:
+          token: ${{ secrets.MATRIX_TOKEN }}
+          room_id: ${{ secrets.MATRIX_ROOM_ID }}
+          message: 'Integration test passed for `${{ github.sha }}`'
+      - name: Verify event_id set
+        run: |
+          if [ -z "${{ steps.notify.outputs.event_id }}" ]; then
+            echo "event_id was not set" && exit 1
+          fi
+          echo "event_id: ${{ steps.notify.outputs.event_id }}"
+
+  test_invalid_format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - id: notify
+        continue-on-error: true
+        uses: ./
+        with:
+          token: ${{ secrets.MATRIX_TOKEN }}
+          room_id: ${{ secrets.MATRIX_ROOM_ID }}
+          message: 'test'
+          format: invalid_format
+      - name: Verify it failed with error output
+        run: |
+          if [ -z "${{ steps.notify.outputs.error }}" ]; then
+            echo "Expected error output but got none" && exit 1
+          fi
+          echo "error: ${{ steps.notify.outputs.error }}"
