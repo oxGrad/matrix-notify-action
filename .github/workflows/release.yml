@@ -8,16 +8,37 @@ on:
         required: true
 
 jobs:
+  verify-version:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Verify tag matches Cargo.toml version
+        run: |
+          TAG="${{ github.event.inputs.version }}"
+          CARGO=$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[] | select(.name == "matrix-notify-action") | .version')
+          if [ "$TAG" != "$CARGO" ]; then
+            echo "Input version $TAG does not match Cargo.toml version $CARGO"
+            exit 1
+          fi
+          echo "Version check passed: $CARGO"
+
   build:
+    needs: [verify-version]
     runs-on: ubuntu-latest
     name: Build linux-musl binary
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: Swatinem/rust-cache@v2
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-unknown-linux-musl
 
-      - name: Install musl target
-        run: rustup target add x86_64-unknown-linux-musl
+      - name: Cache Cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: x86_64-unknown-linux-musl
 
       - name: Install musl-tools
         run: sudo apt-get install -y musl-tools
@@ -31,7 +52,7 @@ jobs:
           tar -czf linux.tgz matrix-notify-action
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: linux
           path: linux.tgz
@@ -42,11 +63,46 @@ jobs:
     name: Create GitHub Release
     permissions:
       contents: write
+    env:
+      MATRIX_ACCESS_TOKEN: ${{ secrets.MATRIX_TOKEN }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
-      - name: Create release
-        uses: ncipollo/release-action@v1
+      - uses: actions/checkout@v7
+
+      - uses: actions/download-artifact@v8
         with:
-          artifacts: linux/linux.tgz
-          tag: v${{ github.event.inputs.version }}
+          path: artifacts
+          merge-multiple: true
+
+      - name: Create release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: v${{ github.event.inputs.version }}
+          files: artifacts/linux.tgz
+
+      - name: Notify Matrix on release
+        if: ${{ env.MATRIX_ACCESS_TOKEN != '' }}
+        uses: ./
+        with:
+          token: ${{ secrets.MATRIX_TOKEN }}
+          room_id: ${{ secrets.MATRIX_ROOM_ID }}
+          message: |
+            **matrix-notify-action** released [v${{ github.event.inputs.version }}](${{ github.server_url }}/${{ github.repository }}/releases/tag/v${{ github.event.inputs.version }})
+
+  notify-failure:
+    needs: [verify-version, build, release]
+    if: failure()
+    runs-on: ubuntu-latest
+    env:
+      MATRIX_ACCESS_TOKEN: ${{ secrets.MATRIX_TOKEN }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Notify Matrix on failure
+        if: ${{ env.MATRIX_ACCESS_TOKEN != '' }}
+        uses: ./
+        with:
+          token: ${{ secrets.MATRIX_TOKEN }}
+          room_id: ${{ secrets.MATRIX_ALERT_ROOM_ID }}
+          msgtype: m.text
+          message: |
+            **matrix-notify-action** release pipeline failed for v${{ github.event.inputs.version }} — [${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})

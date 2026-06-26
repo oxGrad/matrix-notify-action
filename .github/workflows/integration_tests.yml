@@ -11,7 +11,7 @@ jobs:
   test_success:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - id: notify
         uses: ./
         with:
@@ -28,7 +28,7 @@ jobs:
   test_invalid_format:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - id: notify
         continue-on-error: true
         uses: ./
