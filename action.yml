@@ -1,4 +1,4 @@
-name: matrix-notify-action
+name: Matrix Alert
 description: Send notification to a Matrix room
 author: oxGrad <dev@graditya.com>
 branding:
@@ -9,7 +9,7 @@ inputs:
   homeserver:
     description: Matrix homeserver URL (e.g. https://matrix.org)
     required: false
-    default: 'https://matrix.org'
+    default: "https://matrix.org"
   token:
     description: Matrix access token
     required: true
@@ -30,7 +30,7 @@ inputs:
   store_path:
     description: Path to directory for SQLite E2EE crypto store (empty = no E2EE)
     required: false
-    default: ''
+    default: ""
   gh_token:
     description: GitHub token for downloading the binary from releases
     required: false
