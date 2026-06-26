@@ -10,10 +10,12 @@ name = "matrix-notify-action"
 path = "src/main.rs"
 
 [dependencies]
-matrix-sdk = { version = "0.10", features = [
+matrix-sdk = { version = "0.10", default-features = false, features = [
   "e2e-encryption",
+  "automatic-room-key-forwarding",
   "sqlite",
   "bundled-sqlite",
+  "rustls-tls",
 ] }
 tokio = { version = "1", features = ["full"] }
 pulldown-cmark = "0.12"
