@@ -1,7 +1,7 @@
 use anyhow::{anyhow, Result};
 use matrix_sdk::{
-    config::SyncSettings,
     authentication::matrix::{MatrixSession, MatrixSessionTokens},
+    config::SyncSettings,
     ruma::{
         events::room::message::{
             MessageType, NoticeMessageEventContent, RoomMessageEventContent,
@@ -114,9 +114,7 @@ pub async fn send_message(
                 rendered.body.clone(),
                 html.clone(),
             )),
-            None => {
-                MessageType::Notice(NoticeMessageEventContent::plain(rendered.body.clone()))
-            }
+            None => MessageType::Notice(NoticeMessageEventContent::plain(rendered.body.clone())),
         },
     };
 

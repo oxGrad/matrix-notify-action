@@ -11,8 +11,8 @@ pub fn write_error(msg: &str) -> Result<()> {
 }
 
 fn append_output(line: &str) -> Result<()> {
-    let path = std::env::var("GITHUB_OUTPUT")
-        .map_err(|_| anyhow!("GITHUB_OUTPUT env var is not set"))?;
+    let path =
+        std::env::var("GITHUB_OUTPUT").map_err(|_| anyhow!("GITHUB_OUTPUT env var is not set"))?;
     let mut file = OpenOptions::new()
         .create(true)
         .append(true)

@@ -63,14 +63,22 @@ mod tests {
     #[test]
     fn markdown_renders_bold() {
         let r = render("**bold**", "markdown");
-        assert!(r.formatted_body.as_ref().unwrap().contains("<strong>bold</strong>"));
+        assert!(r
+            .formatted_body
+            .as_ref()
+            .unwrap()
+            .contains("<strong>bold</strong>"));
         assert_eq!(r.body, "**bold**");
     }
 
     #[test]
     fn markdown_renders_inline_code() {
         let r = render("`code`", "markdown");
-        assert!(r.formatted_body.as_ref().unwrap().contains("<code>code</code>"));
+        assert!(r
+            .formatted_body
+            .as_ref()
+            .unwrap()
+            .contains("<code>code</code>"));
     }
 
     #[test]

@@ -37,13 +37,20 @@ impl Config {
             other => bail!("MATRIX_MSGTYPE must be m.notice|m.text, got: {}", other),
         }
 
-        Ok(Config { homeserver, token, room_id, message, format, msgtype, store_path })
+        Ok(Config {
+            homeserver,
+            token,
+            room_id,
+            message,
+            format,
+            msgtype,
+            store_path,
+        })
     }
 }
 
 fn require_env(key: &str) -> Result<String> {
-    let val = std::env::var(key)
-        .map_err(|_| anyhow!("{} is required but not set", key))?;
+    let val = std::env::var(key).map_err(|_| anyhow!("{} is required but not set", key))?;
     if val.is_empty() {
         bail!("{} is set but empty", key);
     }
@@ -62,8 +69,15 @@ mod tests {
     }
 
     fn clear_all() {
-        for key in &["MATRIX_HOMESERVER","MATRIX_TOKEN","MATRIX_ROOM_ID",
-                     "MATRIX_MESSAGE","MATRIX_FORMAT","MATRIX_MSGTYPE","MATRIX_STORE_PATH"] {
+        for key in &[
+            "MATRIX_HOMESERVER",
+            "MATRIX_TOKEN",
+            "MATRIX_ROOM_ID",
+            "MATRIX_MESSAGE",
+            "MATRIX_FORMAT",
+            "MATRIX_MSGTYPE",
+            "MATRIX_STORE_PATH",
+        ] {
             std::env::remove_var(key);
         }
     }
@@ -71,7 +85,12 @@ mod tests {
     #[test]
     fn parses_required_fields() {
         clear_all();
-        set_required("https://matrix.org", "syt_token", "!room:matrix.org", "hello");
+        set_required(
+            "https://matrix.org",
+            "syt_token",
+            "!room:matrix.org",
+            "hello",
+        );
         let cfg = Config::from_env().unwrap();
         assert_eq!(cfg.homeserver, "https://matrix.org");
         assert_eq!(cfg.token, "syt_token");
