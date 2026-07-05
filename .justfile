@@ -1,8 +1,19 @@
+set dotenv-load
+
 _default:
   @just --choose
 
 test:
   cargo test
+
+# Send a real message using credentials from .env (see .env.example)
+notify message="Test message from matrix-notify-action":
+  #!/usr/bin/env bash
+  set -euo pipefail
+  export GITHUB_OUTPUT="$(mktemp)"
+  trap 'rm -f "$GITHUB_OUTPUT"' EXIT
+  MATRIX_MESSAGE="{{message}}" cargo run --quiet
+  cat "$GITHUB_OUTPUT"
 
 build:
   cargo build --release
