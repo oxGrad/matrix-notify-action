@@ -19,7 +19,8 @@ async fn run() -> anyhow::Result<()> {
     let config = Config::from_env()?;
     let rendered = render::render(&config.message, &config.format);
     let client = matrix::build_client(&config).await?;
-    let event_id = matrix::send_message(&client, &config, &rendered).await?;
-    output::write_event_id(&event_id)?;
+    let result = matrix::send_message(&client, &config, &rendered).await;
+    matrix::maybe_logout(&client, &config).await;
+    output::write_event_id(&result?)?;
     Ok(())
 }

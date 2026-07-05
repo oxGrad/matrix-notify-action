@@ -11,8 +11,21 @@ inputs:
     required: false
     default: "https://matrix.org"
   token:
-    description: Matrix access token
-    required: true
+    description: Matrix access token (mutually exclusive with user/password)
+    required: false
+    default: ""
+  user:
+    description: Matrix user ID for password login (e.g. @bot:matrix.org)
+    required: false
+    default: ""
+  password:
+    description: Matrix password for password login (obtains a fresh access token every run)
+    required: false
+    default: ""
+  device_id:
+    description: Stable device ID for password login with E2EE (only used when store_path is set)
+    required: false
+    default: "MATRIX_NOTIFY"
   room_id:
     description: Matrix room ID (e.g. !abc:matrix.org)
     required: true
@@ -106,6 +119,9 @@ runs:
       env:
         MATRIX_HOMESERVER: ${{ inputs.homeserver }}
         MATRIX_TOKEN: ${{ inputs.token }}
+        MATRIX_USER: ${{ inputs.user }}
+        MATRIX_PASSWORD: ${{ inputs.password }}
+        MATRIX_DEVICE_ID: ${{ inputs.device_id }}
         MATRIX_ROOM_ID: ${{ inputs.room_id }}
         MATRIX_MESSAGE: ${{ inputs.message }}
         MATRIX_FORMAT: ${{ inputs.format }}
