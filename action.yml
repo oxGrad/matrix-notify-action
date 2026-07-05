@@ -95,7 +95,7 @@ runs:
       id: version
       shell: bash
       run: |
-        final=$(basename "${{ github.action_path }}")
+        final=$(basename "$(realpath "${{ github.action_path }}")")
         if [ "$final" = "${{ env.action_repo }}" ]; then
           echo "version=" >> $GITHUB_OUTPUT
         else
@@ -105,9 +105,15 @@ runs:
     - name: Download binary
       shell: bash
       run: |
-        gh release download ${{ steps.version.outputs.version }} \
-          --repo ${{ env.action_org }}/${{ env.action_repo }} \
-          --pattern 'linux.tgz'
+        REPO="${{ env.action_org }}/${{ env.action_repo }}"
+        TAG="${{ steps.version.outputs.version }}"
+        # Floating tags (v1) and SHA pins have no release of their own:
+        # resolve to the newest release matching the major, else latest.
+        if [ -n "$TAG" ] && ! gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1; then
+          TAG=$(gh release list --repo "$REPO" --limit 100 --json tagName --jq '.[].tagName' \
+            | grep -m1 "^${TAG}\." || true)
+        fi
+        gh release download $TAG --repo "$REPO" --pattern 'linux.tgz'
         tar -xzf linux.tgz
       env:
         GH_TOKEN: ${{ inputs.gh_token }}
