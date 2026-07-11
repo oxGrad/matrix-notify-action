@@ -12,7 +12,7 @@ notify message="Test message from matrix-notify-action":
   set -euo pipefail
   export GITHUB_OUTPUT="$(mktemp)"
   trap 'rm -f "$GITHUB_OUTPUT"' EXIT
-  MATRIX_MESSAGE="{{message}}" cargo run --quiet
+  MATRIX_MESSAGE="{{message}}" cargo run
   cat "$GITHUB_OUTPUT"
 
 build:
